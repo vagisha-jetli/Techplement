@@ -1,5 +1,6 @@
 const express = require("express");
 const https = require("https");
+const fs = require("fs");
 const bodyParser = require("body-parser");
 
 const app = express();
@@ -8,18 +9,17 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
 app.get("/", function (req, res) {
-  res.sendFile(__dirname + "/index.html");
+  const indexHTML = fs.readFileSync(__dirname + "/public/index.html", "utf8");
+  res.send(indexHTML);
 });
 
 app.post("/", function (req, res) {
   const query = req.body.cityName;
-  const apikey = "72e4092e44ba84c60bf81429299152f0";
+  const apiKey = "72e4092e44ba84c60bf81429299152f0";
   const unit = "metric";
-  const url = `https://api.openweathermap.org/data/2.5/weather?q=${query}&appid=${apikey}&units=${unit}`;
+  const url = `https://api.openweathermap.org/data/2.5/weather?q=${query}&appid=${apiKey}&units=${unit}`;
 
   https.get(url, function (response) {
-    console.log(response.statusCode);
-
     response.on("data", function (data) {
       const weatherData = JSON.parse(data);
       const temp = weatherData.main.temp;
@@ -27,7 +27,7 @@ app.post("/", function (req, res) {
       const icon = weatherData.weather[0].icon;
       const imageURL = `http://openweathermap.org/img/wn/${icon}@2x.png`;
 
-      res.send(`
+      const weatherHTML = `
         <!DOCTYPE html>
         <html lang="en" dir="ltr">
         <head>
@@ -51,7 +51,13 @@ app.post("/", function (req, res) {
           </div>
         </body>
         </html>
-      `);
+      `;
+
+      // Save the generated HTML file to the public directory
+      fs.writeFileSync(__dirname + "/public/weather.html", weatherHTML);
+
+      // Send response
+      res.sendFile(__dirname + "/public/weather.html");
     });
   });
 });
@@ -59,3 +65,4 @@ app.post("/", function (req, res) {
 app.listen(3000, function () {
   console.log("Server is running on port 3000.");
 });
+
